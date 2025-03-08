@@ -1,0 +1,48 @@
+---
+name: "Build and Publish"
+"on":
+  push:
+    branches:
+    - "master"
+    tags:
+    - "v*.*.*"
+  pull_request:
+    branches:
+    - "master"
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+    - name: "Set up JDK 21"
+      uses: "actions/setup-java@v3"
+      with:
+        distribution: "temurin"
+        java-version: "21"
+    - name: "Setup Gradle"
+      uses: "gradle/gradle-build-action@v2"
+    - name: "Validate Formatting"
+      run: "./gradlew spotlessCheck"
+    - name: "Generate OpenAPI Client"
+      run: "./gradlew openApiGenerate"
+    - name: "Build Project"
+      run: "./gradlew build"
+  publish:
+    needs: "build"
+    runs-on: "ubuntu-latest"
+    if: "startsWith(github.ref, 'refs/tags/')"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+    - name: "Set up JDK 21"
+      uses: "actions/setup-java@v3"
+      with:
+        distribution: "temurin"
+        java-version: "21"
+    - name: "Setup Gradle"
+      uses: "gradle/gradle-build-action@v2"
+    - name: "Publish to GitHub Packages"
+      run: "./gradlew publish"
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
